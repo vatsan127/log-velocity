@@ -5,7 +5,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.UnsynchronizedAppenderBase;
-import com.github.logvelocity.config.KafkaLoggingProperties;
+import com.github.logvelocity.config.LogVelocityProperties;
 import com.github.logvelocity.model.ErrorLogDetails;
 import com.github.logvelocity.model.GeneralLogDetails;
 import com.github.logvelocity.model.LogDetails;
@@ -38,7 +38,7 @@ import java.util.UUID;
 public class KafkaAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
 
     private final Producer<String, byte[]> producer;
-    private final KafkaLoggingProperties props;
+    private final LogVelocityProperties props;
     private final String applicationName;
     private final String instanceName;
     private final ThreadLocal<Sequence> sequence = new ThreadLocal<>();
@@ -49,7 +49,7 @@ public class KafkaAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
      * @param applicationName application name written to each record
      * @param instanceName    instance name written to each record
      */
-    public KafkaAppender(Producer<String, byte[]> producer, KafkaLoggingProperties props,
+    public KafkaAppender(Producer<String, byte[]> producer, LogVelocityProperties props,
                          String applicationName, String instanceName) {
         this.producer = producer;
         this.props = props;
@@ -63,7 +63,7 @@ public class KafkaAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
     @Override
     protected void append(ILoggingEvent event) {
         boolean error = event.getLevel().isGreaterOrEqual(Level.ERROR);
-        String topic = error ? props.getErrorTopic() : props.getGeneralTopic();
+        String topic = error ? props.getKafka().getErrorTopic() : props.getKafka().getGeneralTopic();
 
         String traceId = event.getMDCPropertyMap().get(props.getTraceIdKey());
         if (traceId == null) {

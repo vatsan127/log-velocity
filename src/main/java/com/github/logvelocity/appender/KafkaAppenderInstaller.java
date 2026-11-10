@@ -2,7 +2,7 @@ package com.github.logvelocity.appender;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
-import com.github.logvelocity.config.KafkaLoggingProperties;
+import com.github.logvelocity.config.LogVelocityProperties;
 import com.github.logvelocity.model.RegistryRecord;
 import com.github.logvelocity.util.LogUtils;
 import jakarta.annotation.PostConstruct;
@@ -48,14 +48,14 @@ public class KafkaAppenderInstaller {
      * @param environment source of {@code spring.application.name}
      */
     public KafkaAppenderInstaller(Producer<String, byte[]> producer,
-                                  KafkaLoggingProperties props,
+                                  LogVelocityProperties props,
                                   Environment environment) {
         this.producer = producer;
-        this.shutdownTimeout = props.getShutdownTimeout();
-        this.warmupTimeout = props.getWarmupTimeout();
-        this.generalTopic = props.getGeneralTopic();
-        this.errorTopic = props.getErrorTopic();
-        this.registryTopic = props.getRegistryTopic();
+        this.shutdownTimeout = props.getKafka().getShutdownTimeout();
+        this.warmupTimeout = props.getKafka().getWarmupTimeout();
+        this.generalTopic = props.getKafka().getGeneralTopic();
+        this.errorTopic = props.getKafka().getErrorTopic();
+        this.registryTopic = props.getKafka().getRegistryTopic();
         this.applicationName = environment.getProperty("spring.application.name", "unknown");
         this.instanceName = props.getInstanceName() != null ? props.getInstanceName() : LogUtils.hostName();
         this.appender = new KafkaAppender(producer, props, applicationName, instanceName);

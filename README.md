@@ -30,8 +30,8 @@ spring:
     name: offer-service
 
 log-velocity:
+  enabled: true
   kafka:
-    enabled: true
     bootstrap-servers: kafka.example.com:9092
     general-topic: app-logs
     error-topic: error-logs
@@ -40,17 +40,22 @@ log-velocity:
 
 ## Configuration
 
-All keys are under `log-velocity.kafka`.
+Keys under `log-velocity`:
 
 | Key | Default | Meaning |
 |---|---|---|
 | `enabled` | `false` | Turns the starter on |
+| `trace-id-key` | `trace_id` | MDC key that holds the trace id |
+| `instance-name` | host name | Instance name written to each record |
+
+Keys under `log-velocity.kafka`:
+
+| Key | Default | Meaning |
+|---|---|---|
 | `bootstrap-servers` | none | Kafka brokers for log traffic only. Never reads `spring.kafka.*`. |
 | `general-topic` | none | Topic for events below ERROR |
 | `error-topic` | none | Topic for ERROR events |
 | `registry-topic` | none | Topic for the registration message sent at startup. None is sent if unset. |
-| `trace-id-key` | `trace_id` | MDC key that holds the trace id |
-| `instance-name` | host name | Instance name written to each record |
 | `producer.*` | `acks=0`, `linger.ms=5` | Extra producer settings. `max.block.ms`, the bootstrap servers and the serializers cannot be overridden. |
 | `warmup-timeout` | `3s` | Longest wait for the topics' metadata at startup |
 | `shutdown-timeout` | `5s` | Longest wait for buffered events at shutdown |
@@ -82,16 +87,20 @@ The application name comes from `spring.application.name`, or `unknown` if it is
 Registration message, with `registry_time` in the same format as `timestamp`:
 
 ```json
-{"instance_name": "offer-service-1", "application_name": "offer-service", "registry_time": "2026-11-08 20:15:52"}
+{
+  "instance_name": "offer-service-1",
+  "application_name": "offer-service",
+  "registry_time": "2026-11-08 20:15:52"
+}
 ```
 
 ## Behaviour
 
 | Stage | What happens |
 |---|---|
-| Startup | Waits up to `warmup-timeout` for the topics' metadata, attaches the appender and logs one INFO line. Sends the registration message if the metadata arrived. Otherwise logs a WARN that events are dropped until Kafka is reachable. |
+| Startup | Waits up to `kafka.warmup-timeout` for the topics' metadata, attaches the appender and logs one INFO line. Sends the registration message if the metadata arrived. Otherwise logs a WARN that events are dropped until Kafka is reachable. |
 | Logging | Builds the record and sends it on the logging thread. `max.block.ms` is 0, so the send never waits. |
-| Shutdown | Detaches the appender, then closes the producer, waiting up to `shutdown-timeout` |
+| Shutdown | Detaches the appender, then closes the producer, waiting up to `kafka.shutdown-timeout` |
 
 Trace id:
 
@@ -104,12 +113,16 @@ Trace id:
 - A failed send drops the event silently. Nothing reports it.
 - With the default `acks=0`, delivery is at most once.
 - Events logged before the appender is attached are not sent.
-- If Kafka is not reachable within `warmup-timeout`, the first events are dropped and the registration message is neither sent nor retried.
+- If Kafka is not reachable within `kafka.warmup-timeout`, the first events are dropped and the registration message is neither sent nor retried.
 - A generated trace id stays on its thread. Pooled or scheduled threads can reuse one id for unrelated work unless the application clears MDC.
 - `sequence_number` is counted per thread and `timestamp` is to the second, so events of one trace id from different threads have no exact order.
 - `timestamp` has no zone, so readers and any database column must use the application's zone.
 - `stack_trace` is sent whole, so it can be large, and it uses the operating system's line separator.
 - Nothing is masked. Do not log sensitive data.
+
+## Future enhancements
+
+- Send `commit_id` and `application_version` with ERROR events, so the analyzer can open the code at the deployed commit.
 
 ## Build
 

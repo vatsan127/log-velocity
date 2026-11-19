@@ -82,7 +82,6 @@ The application name comes from `spring.application.name`, or `unknown` if it is
 - Fields that are `null` are left out.
 - `timestamp` is the application's local date and time as `yyyy-MM-dd HH:mm:ss`, to the second, with no offset.
 - The structure is fixed. Logback patterns and custom layouts are not supported.
-- `ddl/clickhouse.sql` has ClickHouse tables for these messages.
 
 Registration message, with `registry_time` in the same format as `timestamp`:
 
